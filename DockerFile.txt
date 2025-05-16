@@ -1,19 +1,27 @@
+# Use an official Python runtime as a slim base image
 FROM python:3.9-slim
 
+# Set the working directory in the container
 WORKDIR /app
 
-COPY requirements.txt .
+# Install system dependencies (optional but useful for many Python packages)
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    build-essential \
+    && rm -rf /var/lib/apt/lists/*
 
+# Copy and install Python dependencies
+COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
+# Copy the rest of the application code
 COPY . .
 
-# Create the ml directory structure if it doesn't exist
-RUN mkdir -p ml
+# Ensure ml directory and model file exist
+RUN mkdir -p ml && \
+    touch ml/model.pkl
 
-# Create an empty model file if it doesn't exist
-RUN if [ ! -f "ml/model.pkl" ]; then touch ml/model.pkl; fi
-
+# Expose the port uvicorn will run on
 EXPOSE 8000
 
+# Command to run the application
 CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]
