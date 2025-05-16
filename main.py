@@ -19,7 +19,7 @@ except LookupError:
     nltk.download('vader_lexicon')
 
 # Initialize API keys
-NEWS_API_KEY = os.getenv("NEWS_API_KEY", "your_news_api_key")
+NEWS_API_KEY = os.getenv("NEWS_API_KEY", "2cdc5797e7fd4753b24e7b80d62068de")
 
 # Initialize the FastAPI app
 app = FastAPI(title="FinBrain API", description="Stock Sentiment and Prediction API")
@@ -60,9 +60,51 @@ class SentimentResponse(BaseModel):
 def read_root():
     return {"message": "Welcome to FinBrain API!"}
 
+# Original routes
 @app.get("/stock/{ticker}")
 def get_stock_data(ticker: str, days: int = 30):
     """Get historical stock data for the specified ticker."""
+    return _get_stock_data(ticker, days)
+
+@app.get("/news/{ticker}")
+def get_news(ticker: str, days: int = 7):
+    """Get recent news articles related to the stock."""
+    return _get_news(ticker, days)
+
+@app.post("/predict")
+def predict_stock_movement(ticker: str = Query(..., description="Stock ticker symbol")):
+    """Predict stock movement using multi-modal data."""
+    return _predict_stock_movement(ticker)
+
+@app.get("/sentiment")
+def get_sentiment(ticker: str = Query(..., description="Stock ticker symbol")):
+    """Get sentiment analysis for a stock."""
+    return _get_sentiment(ticker)
+
+# New routes with /api prefix matching frontend requests
+@app.get("/api/stocks/{ticker}")
+def api_get_stock_data(ticker: str, days: int = 30):
+    """API route for getting historical stock data."""
+    return _get_stock_data(ticker, days)
+
+@app.get("/api/news/{ticker}")
+def api_get_news(ticker: str, days: int = 7):
+    """API route for getting news data."""
+    return _get_news(ticker, days)
+
+@app.get("/api/prediction/{ticker}")
+def api_predict_stock_movement(ticker: str):
+    """API route for predicting stock movement."""
+    return _predict_stock_movement(ticker)
+
+@app.get("/api/sentiment/{ticker}")
+def api_get_sentiment(ticker: str):
+    """API route for getting sentiment analysis."""
+    return _get_sentiment(ticker)
+
+# Helper functions to avoid code duplication
+def _get_stock_data(ticker: str, days: int = 30):
+    """Helper function for stock data."""
     try:
         end_date = datetime.now()
         start_date = end_date - timedelta(days=days)
@@ -97,9 +139,8 @@ def get_stock_data(ticker: str, days: int = 30):
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
-@app.get("/news/{ticker}")
-def get_news(ticker: str, days: int = 7):
-    """Get recent news articles related to the stock."""
+def _get_news(ticker: str, days: int = 7):
+    """Helper function for news data."""
     try:
         # Get company name for better news search
         stock = yf.Ticker(ticker)
@@ -144,9 +185,8 @@ def get_news(ticker: str, days: int = 7):
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
-@app.post("/predict")
-def predict_stock_movement(ticker: str = Query(..., description="Stock ticker symbol")):
-    """Predict stock movement using multi-modal data."""
+def _predict_stock_movement(ticker: str):
+    """Helper function for stock prediction."""
     try:
         # Get stock data
         end_date = datetime.now()
@@ -158,7 +198,7 @@ def predict_stock_movement(ticker: str = Query(..., description="Stock ticker sy
             raise HTTPException(status_code=404, detail=f"No data found for ticker {ticker}")
         
         # Get news and sentiment data
-        news_response = get_news(ticker)
+        news_response = _get_news(ticker)
         news_sentiment = [article["sentiment"]["compound"] for article in news_response["articles"]]
         avg_news_sentiment = sum(news_sentiment) / len(news_sentiment) if news_sentiment else 0
         
@@ -196,12 +236,11 @@ def predict_stock_movement(ticker: str = Query(..., description="Stock ticker sy
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
-@app.get("/sentiment")
-def get_sentiment(ticker: str = Query(..., description="Stock ticker symbol")):
-    """Get sentiment analysis for a stock."""
+def _get_sentiment(ticker: str):
+    """Helper function for sentiment analysis."""
     try:
         # Get news sentiment
-        news_response = get_news(ticker)
+        news_response = _get_news(ticker)
         news_sentiment = [article["sentiment"]["compound"] for article in news_response["articles"]]
         avg_news_sentiment = sum(news_sentiment) / len(news_sentiment) if news_sentiment else 0
         
