@@ -1,10 +1,10 @@
+from typing import Dict, Any, Tuple
 import pandas as pd
 import numpy as np
+import os
+import joblib
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.preprocessing import StandardScaler
-import joblib
-import os
-from typing import Dict, Any, Tuple, List
 
 class StockPredictor:
     """
